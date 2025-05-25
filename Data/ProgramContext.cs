@@ -5,6 +5,9 @@ namespace TVMazeScraper.Data;
 
 public class ProgramContext : DbContext
 {
+    public ProgramContext(DbContextOptions<ProgramContext> options)
+        : base(options) {}
+
     public DbSet<Show> Shows { get; set; }
     public DbSet<Actor> Actors { get; set; }
     public DbSet<ShowActor> ShowActors { get; set; }
