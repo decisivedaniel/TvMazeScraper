@@ -22,7 +22,7 @@ public class SqliteShowService : IShowService
     {
         return await _context.Shows
             .Include(show =>
-                show.ShowActors.Select(showActor => showActor.Actor))
+                show.ShowActors.Select(showActor => showActor.Actor).OrderBy(x => x.Birthday))
             .ToListAsync();
     }
 
@@ -31,9 +31,12 @@ public class SqliteShowService : IShowService
         return await _context.Shows.Select(x => x.LastUpdated).DefaultIfEmpty(0).MaxAsync();
     }
 
-    public Task<List<Show>> GetPageAsync(int pageNumber = 0, int pageSize = 250)
+    public async Task<List<Show>> GetPageAsync(int pageNumber = 0, int pageSize = 250)
     {
-        throw new NotImplementedException();
+        var result = await GetAllAsync();
+        return result.Skip(pageNumber * pageSize)
+            .Take(pageSize)
+            .ToList();  
     }
 
     public Task UpdateAsync(Show updatedShow)
