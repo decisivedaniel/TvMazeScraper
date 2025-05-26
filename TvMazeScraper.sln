@@ -1,8 +1,10 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TVMazeScraper", "TVMazeScraper.csproj", "{8E011CB3-8347-2A22-32BD-3C9024DCF5D4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TVMazeScraper", "TVMazeScraper.csproj", "{B049E496-6F0E-48D0-B8C2-A0B76B741A31}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TVMazeScraper.Tests", "TVMazeScraper.Tests\TVMazeScraper.Tests.csproj", "{40FE196D-5F17-41B0-A998-2C68F8788DFA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
