@@ -28,7 +28,7 @@ public class SqliteShowService : IShowService
 
     public async Task<long> GetLastUpdatedValue()
     {
-        return await _context.Shows.Select(x => x.LastUpdated).DefaultIfEmpty().MaxAsync();
+        return await _context.Shows.Select(x => x.LastUpdated).DefaultIfEmpty(0).MaxAsync();
     }
 
     public Task<List<Show>> GetPageAsync(int pageNumber = 0, int pageSize = 250)
