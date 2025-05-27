@@ -117,6 +117,7 @@ public class ScraperService : IHostedService, IDisposable
                     actors.Add(new Actor()
                     {
                         Id = person.Id,
+                        Name = person.Name,
                         Birthday = person.Birthday,
                         LastUpdated = person.Updated ?? DateTimeOffset.Now.ToUnixTimeSeconds()
                     });
