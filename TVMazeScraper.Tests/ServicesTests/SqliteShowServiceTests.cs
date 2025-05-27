@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.EntityFrameworkCore;
 using TVMazeScraper.Data;
@@ -7,6 +8,13 @@ namespace TVMazeScraper.Services.Tests;
 
 public class SqliteShowServiceTests
 {
+    private readonly ILogger<SqliteShowService> _dummyLogger = new Mock<ILogger<SqliteShowService>>().Object;
+
+    public SqliteShowService SqliteShowServiceFactory(ProgramContext programContext, ILogger<SqliteShowService>? logger = null)
+    {
+        return new SqliteShowService(programContext, logger == null ? _dummyLogger : logger);
+    }
+
     [Fact]
     public async Task GetLastUpdatedValue_ShouldReturnZero_IfEmpty()
     {
@@ -14,7 +22,7 @@ public class SqliteShowServiceTests
         var data = new List<Show>().AsQueryable();
         var mockContext = new Mock<ProgramContext>();
         mockContext.Setup(c => c.Shows).ReturnsDbSet(data);
-        var service = new SqliteShowService(mockContext.Object);
+        var service = SqliteShowServiceFactory(mockContext.Object);
 
         //Act
         var value = await service.GetLastUpdatedValue();
@@ -35,7 +43,7 @@ public class SqliteShowServiceTests
         var data = new List<Show>().Append(show);
         var mockContext = new Mock<ProgramContext>();
         mockContext.Setup(c => c.Shows).ReturnsDbSet(data);
-        var service = new SqliteShowService(mockContext.Object);
+        var service = SqliteShowServiceFactory(mockContext.Object);
 
         //Act
         var value = await service.GetLastUpdatedValue();
@@ -59,7 +67,7 @@ public class SqliteShowServiceTests
         var data = new List<Show> { show1, show2 };
         var mockContext = new Mock<ProgramContext>();
         mockContext.Setup(c => c.Shows).ReturnsDbSet(data);
-        var service = new SqliteShowService(mockContext.Object);
+        var service = SqliteShowServiceFactory(mockContext.Object);
 
         //Act
         var value = await service.GetLastUpdatedValue();
@@ -75,7 +83,7 @@ public class SqliteShowServiceTests
         var data = new List<Show>().AsQueryable();
         var mockContext = new Mock<ProgramContext>();
         mockContext.Setup(c => c.Shows).ReturnsDbSet(data);
-        var service = new SqliteShowService(mockContext.Object);
+        var service = SqliteShowServiceFactory(mockContext.Object);
 
         //Act
         var value = await service.GetAllAsync();
@@ -99,7 +107,7 @@ public class SqliteShowServiceTests
         var data = new List<Show> { show1, show2 };
         var mockContext = new Mock<ProgramContext>();
         mockContext.Setup(c => c.Shows).ReturnsDbSet(data);
-        var service = new SqliteShowService(mockContext.Object);
+        var service = SqliteShowServiceFactory(mockContext.Object);
 
         //Act
         var value = await service.GetAllAsync();
@@ -128,7 +136,7 @@ public class SqliteShowServiceTests
         var data = new List<Show> { show1, show2, show3 };
         var mockContext = new Mock<ProgramContext>();
         mockContext.Setup(c => c.Shows).ReturnsDbSet(data);
-        var service = new SqliteShowService(mockContext.Object);
+        var service = SqliteShowServiceFactory(mockContext.Object);
 
         //Act
         var value = await service.GetPageAsync(0, 1);
@@ -157,7 +165,7 @@ public class SqliteShowServiceTests
         var data = new List<Show> { show1, show2, show3 };
         var mockContext = new Mock<ProgramContext>();
         mockContext.Setup(c => c.Shows).ReturnsDbSet(data);
-        var service = new SqliteShowService(mockContext.Object);
+        var service = SqliteShowServiceFactory(mockContext.Object);
 
         //Act
         var value = await service.GetPageAsync(1, 1);
@@ -186,7 +194,7 @@ public class SqliteShowServiceTests
         var data = new List<Show> { show1, show2, show3 };
         var mockContext = new Mock<ProgramContext>();
         mockContext.Setup(c => c.Shows).ReturnsDbSet(data);
-        var service = new SqliteShowService(mockContext.Object);
+        var service = SqliteShowServiceFactory(mockContext.Object);
 
         //Act
         var value = await service.GetPageAsync(0, 2);

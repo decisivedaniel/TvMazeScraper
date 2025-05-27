@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using SQLitePCL;
 using TVMazeScraper.Data;
 using TVMazeScraper.Models;
@@ -18,25 +19,50 @@ public class SqliteShowService : IShowService
 
     public async Task CreateOrUpdateAsync(Show show, List<Actor> actors)
     {
+        var dbActors = new List<EntityEntry<Actor>>();
         actors.ForEach(actor =>
         {
             var existingActor = _context.Actors.SingleOrDefault(a => a.Id == actor.Id);
-            _ = existingActor == null ? _context.Actors.Add(actor) : _context.Actors.Update(actor);
+            var dbActor = existingActor == null ? _context.Actors.Add(actor) : _context.Actors.Update(actor);
+            dbActors.Add(dbActor);
         });
-        await _context.SaveChangesAsync();
-        var existingShow = await _context.Shows.SingleOrDefaultAsync(s => s.Id == show.Id);
-        _ = existingShow == null ? _context.Shows.Add(show) : _context.Shows.Update(show);
-        await _context.SaveChangesAsync();
-        existingShow = await _context.Shows.SingleAsync(s => s.Id == show.Id);
-        actors.ForEach(actor =>
+        try
         {
-            existingShow.ShowRoles.Add(new Role
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Problem with Saving: {0}", ex.Message);
+            throw;
+        }
+        var existingShow = await _context.Shows.SingleOrDefaultAsync(s => s.Id == show.Id);
+        var dbShow = existingShow == null ? _context.Shows.Add(show) : _context.Shows.Update(show);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Problem with Saving: {0}", ex.Message);
+            throw;
+        }
+        dbActors.ForEach(actor =>
+        {
+            dbShow.Entity.ShowRoles.Add(new Role
             {
-                Show = existingShow,
-                Actor = actor
+                Show = dbShow.Entity,
+                Actor = actor.Entity
             });
         });
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Problem with Saving: {0}", ex.Message);
+            throw;
+        }
     }
 
     public async Task<List<Show>> GetAllAsync()
@@ -49,21 +75,16 @@ public class SqliteShowService : IShowService
 
     public async Task<long> GetLastUpdatedValue()
     {
-        long value;
         try
         {
-            value = await _context.Shows.Select(x => x.LastUpdated).MaxAsync();
-        }
-        catch (InvalidOperationException)
-        {
-            value = 0;
+            var showsUpdated = await _context.Shows.Select(x => x.LastUpdated).ToListAsync();
+            return showsUpdated.Count == 0 ? 0 : showsUpdated.Max();
         }
         catch (Exception ex)
         {
-            _logger.LogError("Problem with {1}", ex.Message);
+            _logger.LogError("Problem with " + ex.Message);
             throw;
         }
-        return value;
     }
 
     public async Task<List<Show>> GetPageAsync(int pageNumber = 0, int pageSize = 250)
