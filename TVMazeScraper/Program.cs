@@ -25,6 +25,9 @@ builder.Services.AddDbContext<ProgramContext>((serviceProvider, options) =>
 
 builder.Services.AddScoped<IShowService, SqliteShowService>();
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
