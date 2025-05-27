@@ -9,7 +9,7 @@ namespace TVMazeScraper.Services;
 public class ScraperService : IHostedService, IDisposable
 {
     //In seconds (Default to 1 day)
-    public long UpdateWindow { get; set; } = 60 * 60 * 24;
+    public long UpdateWindow { get; set; } = TimeSpan.FromDays(1).Seconds;
     private readonly TvMazeHttpClient _client;
     private readonly IServiceScopeFactory _scopeFactory;
 
