@@ -24,6 +24,9 @@ builder.Services.AddDbContext<ProgramContext>((serviceProvider, options) =>
     });
 
 builder.Services.AddScoped<IShowService, SqliteShowService>();
+builder.Services.AddSingleton<HttpClient>();
+builder.Services.AddSingleton<TvMazeHttpClient>();
+builder.Services.AddHostedService<ScraperService>();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
