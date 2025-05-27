@@ -19,7 +19,7 @@ builder.Services.AddDbContext<ProgramContext>((serviceProvider, options) =>
         {
             Directory.CreateDirectory(dataDirectory);
         }
-        var databaseFile = dataDirectory + ".db";
+        var databaseFile = dataDirectory + "/Shows.db";
         options.UseSqlite("Data Source=" + databaseFile);
     });
 
