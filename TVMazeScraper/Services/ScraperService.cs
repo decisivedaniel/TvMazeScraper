@@ -84,7 +84,6 @@ public class ScraperService : IHostedService, IDisposable
         lastUpdatedTask.Wait();
         var lastUpdated = lastUpdatedTask.Result;
         showList = showList.Where(x => x.Value > lastUpdated).ToDictionary();
-
         //get each show individually
         foreach (var showPair in showList)
         {
@@ -100,7 +99,7 @@ public class ScraperService : IHostedService, IDisposable
                 _logger.LogError(ex, "Json Serialziation Error from show {Id}", showPair.Key);
                 throw;
             }
-            if (showInfo == null) return;
+            if (showInfo == null) continue;
             var retrivedShow = new Show()
             {
                 Id = showInfo.Id,
@@ -111,7 +110,8 @@ public class ScraperService : IHostedService, IDisposable
             var actors = new List<Actor>();
             try
             {
-                foreach (var cast in showInfo.Embedded.Cast)
+                var searchList = showInfo.Embedded.Cast.DistinctBy(cast => cast.Person.Id);
+                foreach (var cast in searchList)
                 {
                     var person = cast.Person;
                     actors.Add(new Actor()
@@ -126,7 +126,7 @@ public class ScraperService : IHostedService, IDisposable
             catch (NullReferenceException ex)
             {
                 _logger.LogError(ex, "Embedded Issue");
-                _logger.LogInformation("showinfo is {showInfo} with id {Id}", showInfo, showInfo.Id);
+                _logger.LogInformation("showinfo is {ShowInfo} with id {Id}", showInfo, showInfo.Id);
                 throw;
             }
 
@@ -183,7 +183,7 @@ public class TvMazeHttpClient
         }
         else if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Didn't return proper value from url {url}", url);
+            _logger.LogError("Didn't return proper value from url {Url} with code {Code}", url, response.StatusCode);
         }
         
         return response;
