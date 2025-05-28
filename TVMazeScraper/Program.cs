@@ -19,11 +19,17 @@ builder.Services.AddDbContext<ProgramContext>((serviceProvider, options) =>
         {
             Directory.CreateDirectory(dataDirectory);
         }
-        var databaseFile = dataDirectory + ".db";
+        var databaseFile = dataDirectory + "/Shows.db";
         options.UseSqlite("Data Source=" + databaseFile);
     });
 
 builder.Services.AddScoped<IShowService, SqliteShowService>();
+builder.Services.AddSingleton<HttpClient>();
+builder.Services.AddSingleton<TvMazeHttpClient>();
+builder.Services.AddHostedService<ScraperService>();
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 var app = builder.Build();
 
