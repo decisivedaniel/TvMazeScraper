@@ -9,7 +9,7 @@ public class ShowDTO
         Id = show.Id;
         Title = show.Title;
         Actors = show.ShowRoles
-            .OrderBy(a => a.Actor.Birthday)
+            .OrderByDescending(a => a.Actor.Birthday)
             .Select(a => new ActorDTO(a.Actor))
             .ToList();
     }
