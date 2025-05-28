@@ -19,7 +19,6 @@ public class SqliteShowService : IShowService
 
     public async Task CreateOrUpdateAsync(Show show, List<Actor> actors)
     {
-        //using var transation = await _context.Database.BeginTransactionAsync();
         List<Actor> dbActors = new List<Actor>();
         actors.ForEach(async actor =>
         {
@@ -66,7 +65,6 @@ public class SqliteShowService : IShowService
         try
         {
             await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear();
         }
         catch (Exception ex)
         {
@@ -85,7 +83,6 @@ public class SqliteShowService : IShowService
         try
         {
             await _context.SaveChangesAsync();
-            _context.ChangeTracker.Clear();
         }
         catch (Exception ex)
         {
@@ -135,13 +132,10 @@ public class SqliteShowService : IShowService
     public async Task<List<Show>> GetPageAsync(int pageNumber = 0, int pageSize = 250)
     {
         var result = await GetAllAsync();
-        return result.Skip(pageNumber * pageSize)
-            .Take(pageSize)
-            .ToList();  
-    }
-
-    public Task UpdateAsync(Show updatedShow)
-    {
-        throw new NotImplementedException();
+        return result
+            .Where(show =>
+                show.Id > (pageNumber * pageSize) &&
+                show.Id <= ((pageNumber * pageSize) + pageSize))
+            .ToList();
     }
 }
