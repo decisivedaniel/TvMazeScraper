@@ -19,50 +19,95 @@ public class SqliteShowService : IShowService
 
     public async Task CreateOrUpdateAsync(Show show, List<Actor> actors)
     {
-        var dbActors = new List<EntityEntry<Actor>>();
-        actors.ForEach(actor =>
+        //using var transation = await _context.Database.BeginTransactionAsync();
+        List<Actor> dbActors = new List<Actor>();
+        actors.ForEach(async actor =>
         {
-            var existingActor = _context.Actors.SingleOrDefault(a => a.Id == actor.Id);
-            var dbActor = existingActor == null ? _context.Actors.Add(actor) : _context.Actors.Update(actor);
-            dbActors.Add(dbActor);
+            var existingActor = await GetActorAsync(actor.Id);
+            if (existingActor == null)
+            {
+                _context.Actors.Add(actor);
+                dbActors.Add(actor);
+            }
+            else
+            {
+                existingActor.Birthday = actor.Birthday;
+                existingActor.Name = actor.Name;
+                existingActor.LastUpdated = actor.LastUpdated;
+                _context.Actors.Update(existingActor);
+                dbActors.Add(actor);
+            } 
         });
         try
         {
             await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
         }
         catch (Exception ex)
         {
             _logger.LogError("Problem with Saving: {0}", ex.Message);
             throw;
         }
-        var existingShow = await _context.Shows.SingleOrDefaultAsync(s => s.Id == show.Id);
-        var dbShow = existingShow == null ? _context.Shows.Add(show) : _context.Shows.Update(show);
+        var possibleShow = await GetShowAsync(show.Id);
+        Show existingShow;
+         _logger.LogInformation("ShowRole is {role}", show.ShowRoles);
+        if (possibleShow == null)
+        {
+            _context.Shows.Add(show);
+            existingShow = show;
+        }
+        else
+        {
+            existingShow = possibleShow;
+            existingShow.Title = show.Title;
+            existingShow.LastUpdated = show.LastUpdated;
+            _context.Shows.Update(possibleShow);
+        }
         try
         {
             await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
         }
         catch (Exception ex)
         {
             _logger.LogError("Problem with Saving: {0}", ex.Message);
             throw;
         }
+        _logger.LogInformation("ShowRole is {role}", existingShow.ShowRoles);
         dbActors.ForEach(actor =>
         {
-            dbShow.Entity.ShowRoles.Add(new Role
+            existingShow.ShowRoles.Add(new Role
             {
-                Show = dbShow.Entity,
-                Actor = actor.Entity
+                Show = show,
+                Actor = actor
             });
         });
         try
         {
             await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
         }
         catch (Exception ex)
         {
             _logger.LogError("Problem with Saving: {0}", ex.Message);
             throw;
         }
+    }
+
+    public async Task<Actor?> GetActorAsync(int id)
+    {
+        return await _context.Actors
+            .Include(actor => actor.ActorRoles)
+            .ThenInclude(role => role.Show)
+            .SingleOrDefaultAsync(actor => actor.Id == id);
+    }
+
+    public async Task<Show?> GetShowAsync(int id)
+    {
+        return await _context.Shows
+            .Include(show => show.ShowRoles)
+            .ThenInclude(role => role.Actor)
+            .SingleOrDefaultAsync(show => show.Id == id);
     }
 
     public async Task<List<Show>> GetAllAsync()
