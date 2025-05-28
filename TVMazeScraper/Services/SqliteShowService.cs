@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using SQLitePCL;
 using TVMazeScraper.Data;
 using TVMazeScraper.Models;
 
@@ -17,6 +16,7 @@ public class SqliteShowService : IShowService
         _logger = logger;
     }
 
+    // Refactor this to call into smaller functions for each item type instead of one large method
     public async Task CreateOrUpdateAsync(Show show, List<Actor> actors)
     {
         List<Actor> dbActors = new List<Actor>();
@@ -35,7 +35,7 @@ public class SqliteShowService : IShowService
                 existingActor.LastUpdated = actor.LastUpdated;
                 _context.Actors.Update(existingActor);
                 dbActors.Add(actor);
-            } 
+            }
         });
         try
         {
@@ -49,7 +49,6 @@ public class SqliteShowService : IShowService
         }
         var possibleShow = await GetShowAsync(show.Id);
         Show existingShow;
-         _logger.LogInformation("ShowRole is {role}", show.ShowRoles);
         if (possibleShow == null)
         {
             _context.Shows.Add(show);
@@ -132,6 +131,7 @@ public class SqliteShowService : IShowService
     public async Task<List<Show>> GetPageAsync(int pageNumber = 0, int pageSize = 250)
     {
         var result = await GetAllAsync();
+        // Could keep this in Queriable before making it a list to improve preformance
         return result
             .Where(show =>
                 show.Id > (pageNumber * pageSize) &&
