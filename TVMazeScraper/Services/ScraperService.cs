@@ -68,7 +68,7 @@ public class ScraperService : IHostedService, IDisposable
         lastUpdatedTask.Wait();
         var lastUpdated = lastUpdatedTask.Result;
         showList = showList
-            .Where(x => x.Value > lastUpdated)
+            .Where(x => x.Value >= lastUpdated)
             .OrderBy(x => x.Value)
             .ToDictionary();
         //get each show individually
