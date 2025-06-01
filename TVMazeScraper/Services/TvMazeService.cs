@@ -1,6 +1,5 @@
 using System.Net;
 using Newtonsoft.Json;
-using Polly.Caching;
 using TVMazeScraper.Models.Json;
 
 namespace TVMazeScraper.Services;
