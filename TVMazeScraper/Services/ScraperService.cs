@@ -13,7 +13,7 @@ public class ScraperService : IHostedService, IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
 
     private readonly ILogger<ScraperService> _logger;
-    private CancellationTokenSource _stoppingCts = new CancellationTokenSource();
+    private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
     private Timer _timer;
 
     public ScraperService(TvMazeApiService client, IServiceScopeFactory serviceFactory, ILogger<ScraperService> logger)
@@ -131,6 +131,8 @@ public class ScraperService : IHostedService, IDisposable
         _timer?.Change(Timeout.Infinite, 0);
 
         Task.Delay(TimeSpan.FromSeconds(2)).Wait();
+
+        _stoppingCts.Dispose();
 
         return Task.CompletedTask;
     }
