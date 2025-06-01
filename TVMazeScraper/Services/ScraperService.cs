@@ -130,6 +130,8 @@ public class ScraperService : IHostedService, IDisposable
 
         _timer?.Change(Timeout.Infinite, 0);
 
+        Task.Delay(TimeSpan.FromSeconds(2)).Wait();
+
         return Task.CompletedTask;
     }
 
