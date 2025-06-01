@@ -1,7 +1,8 @@
-using Newtonsoft.Json;
+using ComposableAsync;
 using TVMazeScraper.Models;
-using TVMazeScraper.Models.Json;
 using System.Diagnostics;
+using TVMazeScraper.Models.Json;
+using RateLimiter;
 using System.Net;
 
 namespace TVMazeScraper.Services;
@@ -10,15 +11,15 @@ public class ScraperService : IHostedService, IDisposable
 {
     //In seconds (Default to 1 day)
     public long UpdateWindow { get; set; } = TimeSpan.FromDays(1).Seconds;
-    private readonly TvMazeHttpClient _client;
+    private readonly TvMazeApiService _client;
     private readonly IServiceScopeFactory _scopeFactory;
 
     private readonly ILogger<ScraperService> _logger;
     private Timer _timer;
 
-    public ScraperService(TvMazeHttpClient httpClient, IServiceScopeFactory serviceFactory, ILogger<ScraperService> logger)
+    public ScraperService(TvMazeApiService client, IServiceScopeFactory serviceFactory, ILogger<ScraperService> logger)
     {
-        _client = httpClient;
+        _client = client;
         _scopeFactory = serviceFactory;
         _logger = logger;
     }
@@ -29,7 +30,6 @@ public class ScraperService : IHostedService, IDisposable
         {
             var showService = scope.ServiceProvider.GetRequiredService<IShowService>();
             var shouldUpdate = await CheckStorage(showService);
-            _logger.LogInformation("ShouldUpdate is {0}", shouldUpdate);
             if (shouldUpdate)
             {
                 var sw = new Stopwatch();
@@ -62,44 +62,22 @@ public class ScraperService : IHostedService, IDisposable
     public async Task UpdateStorage(IShowService showService)
     {
         _logger.LogInformation("Started Update");
-        var updateResponse = await _client.GetAsync("https://api.tvmaze.com/updates/shows");
-        if (!updateResponse.IsSuccessStatusCode)
-        {
-            _logger.LogError("Didn't succeed in getting updated show list with code: " + updateResponse.StatusCode);
-        }
-        var jsonStringTask = updateResponse.Content.ReadAsStringAsync();
+        var updateTask = _client.getShowUpdate();
         var lastUpdatedTask = showService.GetLastUpdatedValue();
-        jsonStringTask.Wait();
-        var jsonString = jsonStringTask.Result;
-        Dictionary<long, long> showList;
-        try
-        {
-            showList = JsonConvert.DeserializeObject<Dictionary<long, long>>(jsonString);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Serializer error from updates/shows");
-            return;
-        }
+        updateTask.Wait();
+        var showList = updateTask.Result;
         lastUpdatedTask.Wait();
         var lastUpdated = lastUpdatedTask.Result;
-        showList = showList.Where(x => x.Value > lastUpdated).ToDictionary();
+        showList = showList
+            .Where(x => x.Value > lastUpdated)
+            .OrderBy(x => x.Value)
+            .ToDictionary();
         //get each show individually
         foreach (var showPair in showList)
         {
-            var showResponse = await _client.GetAsync($"https://api.tvmaze.com/shows/{showPair.Key}?embed=cast");
-            var resultJson = await showResponse.Content.ReadAsStringAsync();
-            ShowRoot? showInfo;
-            try
-            {
-                showInfo = JsonConvert.DeserializeObject<ShowRoot>(resultJson);
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogError(ex, "Json Serialziation Error from show {Id}", showPair.Key);
-                throw;
-            }
+            var showInfo = await _client.getShow(showPair.Key);
             if (showInfo == null) continue;
+            _logger.LogInformation("The show is call {Name}", showInfo.Name);
             var retrivedShow = new Show()
             {
                 Id = showInfo.Id,
@@ -126,7 +104,7 @@ public class ScraperService : IHostedService, IDisposable
             catch (NullReferenceException ex)
             {
                 _logger.LogError(ex, "Embedded Issue");
-                _logger.LogInformation("showinfo is {ShowInfo} with id {Id}", showInfo, showInfo.Id);
+                _logger.LogError("showinfo is {ShowInfo} with id {Id}", showInfo?.Embedded?.Cast, showPair.Key);
                 throw;
             }
 
@@ -159,33 +137,3 @@ public class ScraperService : IHostedService, IDisposable
     }
 }
 
-// To handle too many requests responses gracefully
-public class TvMazeHttpClient
-{
-    private readonly HttpClient _client;
-    private readonly ILogger<TvMazeHttpClient> _logger;
-    public TvMazeHttpClient(HttpClient httpClient, ILogger<TvMazeHttpClient> logger)
-    {
-        _client = httpClient;
-        _logger = logger;
-    }
-    public async Task<HttpResponseMessage> GetAsync(string url)
-    {
-        var response = await _client.GetAsync(url);
-        if (response.StatusCode == HttpStatusCode.TooManyRequests)
-        {
-            var t = Task.Run(async delegate
-            {
-                await Task.Delay(TimeSpan.FromSeconds(2).Milliseconds);
-            });
-            t.Wait();
-            response = await GetAsync(url);
-        }
-        else if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogError("Didn't return proper value from url {Url} with code {Code}", url, response.StatusCode);
-        }
-        
-        return response;
-    }
-}
