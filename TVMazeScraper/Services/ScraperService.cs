@@ -1,8 +1,6 @@
-using ComposableAsync;
 using TVMazeScraper.Models;
 using System.Diagnostics;
 using TVMazeScraper.Models.Json;
-using RateLimiter;
 using System.Net;
 
 namespace TVMazeScraper.Services;
@@ -15,6 +13,7 @@ public class ScraperService : IHostedService, IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
 
     private readonly ILogger<ScraperService> _logger;
+    private CancellationTokenSource _stoppingCts = new CancellationTokenSource();
     private Timer _timer;
 
     public ScraperService(TvMazeApiService client, IServiceScopeFactory serviceFactory, ILogger<ScraperService> logger)
@@ -75,6 +74,7 @@ public class ScraperService : IHostedService, IDisposable
         //get each show individually
         foreach (var showPair in showList)
         {
+            if (_stoppingCts.IsCancellationRequested) break;
             var showInfo = await _client.getShow(showPair.Key);
             if (showInfo == null) continue;
             _logger.LogInformation("The show is call {Name}", showInfo.Name);
@@ -82,7 +82,7 @@ public class ScraperService : IHostedService, IDisposable
             {
                 Id = showInfo.Id,
                 Title = showInfo.Name,
-                LastUpdated = showInfo.Updated ?? DateTimeOffset.Now.ToUnixTimeSeconds(),
+                LastUpdated = showInfo.Updated ?? 0,
                 ShowRoles = new List<Role>()
             };
             var actors = new List<Actor>();
@@ -97,7 +97,7 @@ public class ScraperService : IHostedService, IDisposable
                         Id = person.Id,
                         Name = person.Name,
                         Birthday = person.Birthday,
-                        LastUpdated = person.Updated ?? DateTimeOffset.Now.ToUnixTimeSeconds()
+                        LastUpdated = person.Updated ?? 0
                     });
                 }
             }
@@ -125,6 +125,8 @@ public class ScraperService : IHostedService, IDisposable
     public Task StopAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Timed Hosted Service is stopping.");
+
+        _stoppingCts.Cancel();
 
         _timer?.Change(Timeout.Infinite, 0);
 
